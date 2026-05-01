@@ -1,54 +1,85 @@
-import { useState } from 'react';
-import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const MYTHS_DB = [
-  {
-    keywords: ['secret', 'know who i voted', 'privacy'],
-    answer: "Your vote is absolutely secret. The EVM does not record your identity alongside your vote, and the VVPAT slip is stored securely in a sealed box."
-  },
-  {
-    keywords: ['vvpat', 'work', 'slip', 'paper'],
-    answer: "Yes, the VVPAT (Voter Verifiable Paper Audit Trail) works perfectly. When you press the button, a slip with your candidate's symbol is printed and visible behind a glass screen for 7 seconds before dropping into a sealed drop box."
-  },
-  {
-    keywords: ['nri', 'abroad', 'overseas'],
-    answer: "NRIs can vote, but currently, they must be physically present at their designated polling booth in India. Postal ballots or online voting are not yet available for general NRI voters."
-  },
-  {
-    keywords: ['evm', 'hack', 'tamper', 'safe'],
-    answer: "EVMs are standalone machines with no internet or wireless connectivity, making them immune to remote hacking. They also undergo rigorous multi-level checks in the presence of political party representatives."
-  }
-];
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, role: 'bot', text: 'Hello! I am the Election Myth-Buster AI. Ask me questions like "Is my vote secret?" or "Does the VVPAT really work?"' }
+    { id: 1, role: 'bot', text: 'Hello! I am the Election Authority AI. Ask me about the 2026 polls or voting process.' }
   ]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  const handleSend = (e) => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMsg = input.trim();
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: userMsg }]);
     setInput('');
+    setIsLoading(true);
 
-    // Process answer
-    setTimeout(() => {
-      let response = "That's a great question. While I don't have a specific answer for that in my database right now, you can always trust the official Election Commission guidelines for accurate information.";
-      
-      for (const entry of MYTHS_DB) {
-        if (entry.keywords.some(kw => userMsg.toLowerCase().includes(kw))) {
-          response = entry.answer;
-          break;
+    try {
+      // Format previous messages for chat history
+      const history = messages.slice(1).map(m => ({
+        role: m.role === 'bot' ? 'model' : 'user',
+        parts: [{ text: m.text }]
+      }));
+
+      const fetchWithRetry = async (retries = 3) => {
+        try {
+          const response = await fetch('http://localhost:3001/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userMsg, history })
+          });
+          
+          if (!response.ok) {
+            if (response.status === 429 && retries > 0) {
+              console.warn(`Rate limited. Retrying in 3 seconds... (${retries} retries left)`);
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              return fetchWithRetry(retries - 1);
+            }
+            throw new Error(`Server responded with ${response.status}`);
+          }
+          
+          return await response.json();
+        } catch (err) {
+          if (retries > 0 && err.message.includes('429')) {
+             console.warn(`Rate limited. Retrying in 3 seconds... (${retries} retries left)`);
+             await new Promise(resolve => setTimeout(resolve, 3000));
+             return fetchWithRetry(retries - 1);
+          }
+          throw err;
         }
+      };
+
+      const data = await fetchWithRetry();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      setMessages(prev => [...prev, { id: Date.now(), role: 'bot', text: response }]);
-    }, 600);
+      setMessages(prev => [...prev, { id: Date.now(), role: 'bot', text: data.text }]);
+    } catch (error) {
+      console.error("Backend Proxy Error:", error);
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        role: 'bot', 
+        text: "Sorry, I am currently unable to process your request. " + error.message
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -104,7 +135,7 @@ export default function Chatbot() {
                   <div className={`w-8 h-8 rounded-full flex shrink-0 items-center justify-center ${msg.role === 'user' ? 'bg-slate-700' : 'bg-brand-500'}`}>
                     {msg.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm ${
+                  <div className={`p-3 rounded-2xl text-sm whitespace-pre-wrap ${
                     msg.role === 'user' 
                       ? 'bg-slate-800 text-white rounded-tr-none' 
                       : 'bg-brand-500/20 border border-brand-500/30 text-slate-200 rounded-tl-none'
@@ -113,6 +144,17 @@ export default function Chatbot() {
                   </div>
                 </div>
               ))}
+              {isLoading && (
+                <div className="flex gap-3 max-w-[85%] self-start">
+                  <div className="w-8 h-8 rounded-full flex shrink-0 items-center justify-center bg-brand-500">
+                    <Bot className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="p-3 rounded-2xl text-sm bg-brand-500/20 border border-brand-500/30 text-slate-200 rounded-tl-none flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Form */}

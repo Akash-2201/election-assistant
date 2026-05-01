@@ -1,8 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
   --color-brand-500: #6366f1;
@@ -11,52 +9,89 @@
   --color-brand-950: #1e1b4b;
 }
 
-@layer base {
-  body {
-    @apply bg-slate-950 text-slate-50 font-sans antialiased min-h-screen selection:bg-brand-500 selection:text-white transition-colors duration-300;
+/* Base styles using standard CSS selectors */
+body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-50);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  transition-property: color, background-color;
+  transition-duration: 300ms;
+}
+
+::selection {
+  background-color: var(--color-indigo-500);
+  color: white;
+}
+
+@utility glass-panel {
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-slate-800);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-slate-700);
   }
 }
 
-@layer utilities {
-  .glass-panel {
-    @apply bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
-  }
-  
-  .glass-card {
-    @apply bg-slate-800/50 backdrop-blur-md border border-slate-700/50 shadow-lg hover:shadow-brand-500/10 transition-all;
+/* High Contrast Mode */
+.high-contrast {
+  background-color: black !important;
+  color: white !important;
+
+  & .glass-panel {
+    background-color: black !important;
+    backdrop-filter: none !important;
+    border: 2px solid #facc15 !important;
+    box-shadow: none !important;
   }
 
-  /* High Contrast Mode Overrides */
-  .high-contrast {
-    @apply bg-black text-white;
-  }
-  
-  .high-contrast .glass-panel,
-  .high-contrast .glass-card {
-    @apply bg-black backdrop-blur-none border-2 border-yellow-400 shadow-none;
+  & nav {
+    background-color: black !important;
+    border-right: 2px solid #facc15 !important;
   }
 
-  .high-contrast p,
-  .high-contrast span {
-    @apply !text-white;
+  & header {
+    background-color: black !important;
+    border-bottom: 2px solid #facc15 !important;
   }
 
-  .high-contrast h1,
-  .high-contrast h2,
-  .high-contrast h3 {
-    @apply !text-yellow-400;
+  & button {
+    border: 2px solid #facc15 !important;
+    font-weight: 700 !important;
   }
 
-  .high-contrast button {
-    @apply !bg-yellow-400 !text-black border-2 !border-yellow-400 !font-bold hover:!bg-yellow-500;
+  & button[class*="bg-brand-500/10"] {
+    background-color: #facc15 !important;
+    color: black !important;
   }
-  
-  .high-contrast svg {
-    @apply !text-yellow-400;
+
+  & .text-slate-400,
+  & .text-slate-500 {
+    color: white !important;
   }
-  
-  .high-contrast .text-brand-400,
-  .high-contrast .text-brand-500 {
-    @apply !text-yellow-400;
+
+  & .text-brand-400,
+  & .text-brand-500 {
+    color: #facc15 !important;
+  }
+
+  & svg {
+    color: currentColor !important;
   }
 }

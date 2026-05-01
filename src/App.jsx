@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react';
-import Header from './components/Header';
-import StateHub from './components/StateHub';
-import Roadmap from './components/Roadmap';
-import DocumentVerifier from './components/DocumentVerifier';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import VoterIDScanner from './components/VoterIDScanner';
 import Chatbot from './components/Chatbot';
+import RumorScanner from './components/RumorScanner';
+import GlobalMapTab from './components/GlobalMapTab';
+import NewsTab from './components/NewsTab';
+import { LayoutDashboard, Newspaper, ScanLine, ShieldCheck, Clock, Settings, Bell, MessageCircle, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-function App() {
+function AppContent() {
+  const [activeTab, setActiveTab] = useState('home');
   const [highContrast, setHighContrast] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const { t } = useLanguage();
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Apply high contrast class to body for global scope
   useEffect(() => {
     if (highContrast) {
       document.body.classList.add('high-contrast');
@@ -17,46 +23,191 @@ function App() {
     }
   }, [highContrast]);
 
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const TABS = [
+    { id: 'home', label: 'Global Pulse', icon: LayoutDashboard },
+    { id: 'news', label: 'Live News', icon: Newspaper },
+    { id: 'scan', label: 'ID Scanner', icon: ScanLine },
+    { id: 'rumor', label: 'Rumor Check', icon: ShieldCheck },
+  ];
+
   return (
-    <div className={`min-h-screen relative transition-colors duration-300 ${highContrast ? 'high-contrast' : ''}`}>
-      {/* Abstract Background Elements (Hidden in High Contrast) */}
-      {!highContrast && (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-900/40 blur-[150px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/30 blur-[150px]" />
-          <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-900/20 blur-[120px]" />
+    <div className={`h-screen w-screen flex bg-slate-950 text-slate-50 overflow-hidden font-sans ${highContrast ? 'high-contrast' : ''}`}>
+      {/* Sidebar Navigation */}
+      <nav className="w-20 md:w-64 bg-slate-900 border-r border-white/5 flex flex-col p-4 z-30 transition-all">
+        <div className="flex items-center gap-3 mb-12 px-2">
+          <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <ShieldCheck className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xl font-black tracking-tighter hidden md:block">VOTERQUEST</span>
         </div>
-      )}
 
-      {/* Main Content */}
-      <div className="relative z-10">
-        <Header highContrast={highContrast} setHighContrast={setHighContrast} />
-        
-        <main className="container mx-auto px-4 md:px-8 py-8 space-y-16 md:space-y-24 max-w-6xl">
-          {/* Hero Section */}
-          <section className="text-center pt-8 md:pt-16 pb-8">
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 high-contrast:text-yellow-400">
-              Your Voice.<br />Your Power.
-            </h1>
-            <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              The 2026 General Elections are here. Stay informed, verify your documents, and follow our interactive roadmap to ensure your vote counts.
-            </p>
-          </section>
+        <div className="flex-1 space-y-2">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all relative group ${
+                  activeTab === tab.id 
+                    ? 'bg-brand-500/10 text-brand-400 font-bold' 
+                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                }`}
+              >
+                <Icon className={`w-6 h-6 ${activeTab === tab.id ? 'text-brand-500' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                <span className="hidden md:block">{tab.label}</span>
+                {activeTab === tab.id && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className="absolute left-0 w-1 h-8 bg-brand-500 rounded-r-full"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-          <StateHub />
-          <Roadmap />
-          <DocumentVerifier />
-        </main>
-        
-        <Chatbot />
-      </div>
+        <div className="pt-4 border-t border-white/5 space-y-2">
+          <button 
+            onClick={() => setHighContrast(!highContrast)}
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-400 hover:bg-white/5 transition-all"
+          >
+            <Settings className="w-6 h-6" />
+            <span className="hidden md:block">Accessibility</span>
+          </button>
+          <div className="px-4 py-4 hidden md:block text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+            © 2026 VoterQuest Global
+          </div>
+        </div>
+      </nav>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/10 mt-20 py-8 text-center text-slate-500 text-sm">
-        <p>Built for the 2026 Election Hackathon • Empowering every voter</p>
-      </footer>
+      {/* Main Body */}
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+        {/* Top Header */}
+        <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-slate-950/50 backdrop-blur-md z-20">
+          <div className="flex items-center gap-6">
+            <h2 className="text-xl font-bold capitalize">{TABS.find(t => t.id === activeTab)?.label || 'Dashboard'}</h2>
+            <div className="hidden lg:flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-xl border border-white/5">
+              <Clock className="w-4 h-4 text-brand-500" />
+              <span className="text-sm font-mono text-slate-300 font-bold">{currentTime.toLocaleTimeString()}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+             <button 
+               onClick={() => setIsChatOpen(!isChatOpen)}
+               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold border ${
+                 isChatOpen 
+                 ? 'bg-brand-500 text-white border-brand-400 shadow-[0_0_20px_rgba(99,102,241,0.4)]' 
+                 : 'bg-slate-900 text-brand-400 border-white/5 hover:bg-slate-800'
+               }`}
+             >
+               <MessageCircle className="w-5 h-5" />
+               <span className="hidden sm:block">AI Assistant</span>
+             </button>
+
+             <button className="p-2.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 hover:text-white transition-all relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900" />
+            </button>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 p-6 md:p-10 relative overflow-hidden">
+           {/* Abstract Backgrounds */}
+           <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+             <div className="absolute top-[20%] left-[30%] w-[40%] h-[40%] rounded-full bg-brand-900/20 blur-[150px]" />
+             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/20 blur-[150px]" />
+           </div>
+
+           <div className="relative h-full z-10 overflow-y-auto custom-scrollbar pr-2">
+             <AnimatePresence mode="wait">
+               <motion.div
+                 key={activeTab}
+                 initial={{ opacity: 0, y: 15 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -15 }}
+                 transition={{ duration: 0.3, ease: "easeOut" }}
+                 className="h-full"
+               >
+                 {activeTab === 'home' && <GlobalMapTab />}
+                 {activeTab === 'news' && <NewsTab />}
+                 
+                 {activeTab === 'scan' && (
+                   <div className="h-full max-w-4xl mx-auto py-8">
+                     <VoterIDScanner />
+                   </div>
+                 )}
+
+                 {activeTab === 'rumor' && (
+                   <div className="h-full max-w-2xl mx-auto py-8">
+                     <RumorScanner />
+                   </div>
+                 )}
+               </motion.div>
+             </AnimatePresence>
+           </div>
+        </div>
+
+        {/* Floating Chatbot Overlay */}
+        <AnimatePresence>
+          {isChatOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsChatOpen(false)}
+                className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40"
+              />
+              {/* Drawer */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 h-full w-full max-w-md bg-slate-900 border-l border-white/10 z-50 shadow-2xl flex flex-col"
+              >
+                <div className="p-6 border-b border-white/10 flex items-center justify-between bg-slate-900/80 backdrop-blur">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-brand-500 rounded-lg">
+                      <MessageCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white">Election AI Expert</h3>
+                      <span className="text-[10px] text-brand-400 font-bold uppercase tracking-widest">Global Support</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setIsChatOpen(false)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <Chatbot />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
+  );
+}

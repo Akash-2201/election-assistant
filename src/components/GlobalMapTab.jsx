@@ -1,39 +1,42 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
-import { Search, MapPin, Calendar, Info, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Calendar, Info, Search, ChevronDown, Globe } from 'lucide-react';
+
+const CONTAINER_STYLE = {
+  width: '100%',
+  height: '100%',
+};
+
+const CENTER = {
+  lat: 20,
+  lng: 10,
+};
+
+const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson';
 
 const COUNTRIES = [
-  { id: 'USA', name: 'United States', lat: 37.0902, lng: -95.7129, status: 'Upcoming', timeline: 'Nov 3, 2026', type: 'Midterm Elections' },
-  { id: 'IND', name: 'India', lat: 20.5937, lng: 78.9629, status: 'Ongoing', timeline: 'May 4, 2026 (Counting)', type: 'General Elections' },
-  { id: 'GBR', name: 'United Kingdom', lat: 55.3781, lng: -3.4360, status: 'Completed', timeline: 'July 2024', type: 'General Elections' },
-  { id: 'BRA', name: 'Brazil', lat: -14.2350, lng: -51.9253, status: 'Upcoming', timeline: 'Oct 4, 2026', type: 'General Elections' },
-  { id: 'DEU', name: 'Germany', lat: 51.1657, lng: 10.4515, status: 'Upcoming', timeline: 'Sept 2025', type: 'Federal Elections' },
-  { id: 'AUS', name: 'Australia', lat: -25.2744, lng: 133.7751, status: 'Upcoming', timeline: 'May 2025', type: 'Federal Elections' },
-  { id: 'CAN', name: 'Canada', lat: 56.1304, lng: -106.3468, status: 'Upcoming', timeline: 'Oct 20, 2025', type: 'Federal Elections' },
-  { id: 'FRA', name: 'France', lat: 46.2276, lng: 2.2137, status: 'Completed', timeline: 'June 2024', type: 'Legislative' },
-  { id: 'JPN', name: 'Japan', lat: 36.2048, lng: 138.2529, status: 'Upcoming', timeline: 'Oct 2025', type: 'General Elections' },
-  { id: 'ZAF', name: 'South Africa', lat: -30.5595, lng: 22.9375, status: 'Completed', timeline: 'May 2024', type: 'General Elections' },
+  { id: 'IND', name: 'India', status: 'Upcoming', timeline: 'May 2026', type: 'General Elections' },
+  { id: 'USA', name: 'United States', status: 'Ongoing', timeline: 'Nov 2026', type: 'Midterm Elections' },
+  { id: 'BRA', name: 'Brazil', status: 'Upcoming', timeline: 'Oct 2026', type: 'Presidential Elections' },
+  { id: 'GBR', name: 'United Kingdom', status: 'Completed', timeline: 'July 2024', type: 'General Elections' },
 ];
 
-const GEOJSON_URL = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
-
-const containerStyle = { width: '100%', height: '100%' };
-
-const mapOptions = {
+const MAP_OPTIONS = {
   disableDefaultUI: true,
-  zoomControl: true,
+  zoomControl: false,
+  backgroundColor: '#020617',
   styles: [
-    { elementType: "geometry", stylers: [{ color: "#1e293b" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#1e293b" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+    { featureType: "all", elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+    { featureType: "all", elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] },
+    { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+    { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }, { weight: 1 }] },
     { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
     { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
   ],
 };
 
-export default function GlobalMapTab() {
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[1]);
+export default function GlobalMapTab({ selectedCountry, setSelectedCountry }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const mapRef = useRef(null);
@@ -59,98 +62,96 @@ export default function GlobalMapTab() {
     map.data.setStyle((feature) => {
       const isSelected = feature.getProperty('id') === selectedCountry.id || feature.getId() === selectedCountry.id;
       return {
-        fillColor: isSelected ? '#6366f1' : 'transparent',
-        fillOpacity: isSelected ? 0.4 : 0,
-        strokeColor: isSelected ? '#6366f1' : '#334155',
-        strokeWeight: isSelected ? 2 : 0.5,
-        visible: true
+        fillColor: isSelected ? '#6366f1' : '#1e293b',
+        fillOpacity: isSelected ? 0.6 : 0.2,
+        strokeColor: isSelected ? '#818cf8' : '#334155',
+        strokeWeight: isSelected ? 2 : 1,
       };
     });
-  }, [selectedCountry.id]);
 
-  useEffect(() => {
-    if (mapRef.current && dataLayerRef.current) {
-      // Re-style when country changes
-      dataLayerRef.current.setStyle((feature) => {
-        const featId = feature.getProperty('id') || feature.getId();
-        const isSelected = featId === selectedCountry.id;
-        if (isSelected) {
-          // Fit map to feature bounds
-          const bounds = new window.google.maps.LatLngBounds();
-          feature.getGeometry().forEachLatLng((latlng) => bounds.extend(latlng));
-          mapRef.current.fitBounds(bounds);
-        }
-        return {
-          fillColor: isSelected ? '#6366f1' : 'transparent',
-          fillOpacity: isSelected ? 0.4 : 0,
-          strokeColor: isSelected ? '#6366f1' : '#334155',
-          strokeWeight: isSelected ? 2 : 0.5,
-        };
-      });
-    }
-  }, [selectedCountry]);
-
-  const handleSelect = (country) => {
-    setSelectedCountry(country);
-    setIsDropdownOpen(false);
-    setSearchQuery('');
-  };
+    // Handle clicks
+    map.data.addListener('click', (event) => {
+      const countryId = event.feature.getProperty('id') || event.feature.getId();
+      const countryData = COUNTRIES.find(c => c.id === countryId);
+      if (countryData) {
+        setSelectedCountry(countryData);
+      }
+    });
+  }, [selectedCountry, setSelectedCountry]);
 
   return (
-    <div className="h-full flex flex-col gap-6 relative">
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400" />
+    <div className="h-full w-full relative overflow-hidden rounded-3xl border border-white/5 bg-slate-950">
+      {/* Search Overlay */}
+      <div className="absolute top-6 right-6 z-10 w-72">
+        <div className="relative">
+          <div className="flex items-center bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-2xl focus-within:border-brand-500/50 transition-all">
+            <div className="p-2.5 text-slate-500">
+              <Search className="w-4 h-4" />
+            </div>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsDropdownOpen(true)}
+              placeholder="Search global pulse..."
+              className="bg-transparent border-none text-white text-xs font-bold uppercase tracking-widest focus:ring-0 w-full placeholder:text-slate-600"
+            />
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="p-2.5 text-slate-500 hover:text-white transition-colors"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
           </div>
-          <input
-            type="text"
-            className="w-full bg-slate-900/50 border border-slate-700/50 rounded-2xl py-3 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-brand-500 backdrop-blur-xl transition-all"
-            placeholder="Search country..."
-            value={searchQuery}
-            onFocus={() => setIsDropdownOpen(true)}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          
+
           <AnimatePresence>
             {isDropdownOpen && (
-              <motion.div
+              <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-2xl max-h-60 overflow-y-auto"
+                className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
               >
-                {filteredCountries.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => handleSelect(c)}
-                    className="w-full text-left px-5 py-3 hover:bg-brand-500/20 text-slate-200 transition-colors flex items-center justify-between border-b border-slate-800 last:border-0"
-                  >
-                    <span>{c.name}</span>
-                    <span className="text-[10px] uppercase tracking-tighter text-slate-500">{c.type}</span>
-                  </button>
-                ))}
+                <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                  {filteredCountries.map((country) => (
+                    <button
+                      key={country.id}
+                      onClick={() => {
+                        setSelectedCountry(country);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="w-full p-4 flex items-center gap-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group"
+                    >
+                      <Globe className="w-4 h-4 text-slate-500 group-hover:text-brand-400" />
+                      <span className="text-xs font-bold text-slate-300 group-hover:text-white uppercase tracking-widest">
+                        {country.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      <div className="flex-1 rounded-3xl overflow-hidden border border-slate-700/50 relative shadow-2xl">
-        {!isLoaded ? (
-          <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-            <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
-          </div>
-        ) : (
+      <div className="h-full w-full">
+        {isLoaded ? (
           <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={{ lat: selectedCountry.lat, lng: selectedCountry.lng }}
-            zoom={4}
-            options={mapOptions}
+            mapContainerStyle={CONTAINER_STYLE}
+            center={CENTER}
+            zoom={2.5}
             onLoad={onLoad}
+            options={MAP_OPTIONS}
           />
+        ) : (
+          <div className="h-full w-full flex flex-col items-center justify-center space-y-4">
+            <Globe className="w-12 h-12 text-brand-500 animate-pulse" />
+            <div className="text-[10px] font-black text-brand-500 uppercase tracking-[0.4em]">Initializing Global Pulse...</div>
+          </div>
         )}
 
+        {/* Selected Country Details Card */}
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedCountry.id}

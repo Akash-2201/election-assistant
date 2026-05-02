@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Share2, AlertTriangle, Loader2 } from 'lucide-react';
 
 const EXAMPLES = [
@@ -7,7 +8,9 @@ const EXAMPLES = [
     'Postal ballots are not counted in West Bengal elections.',
 ];
 
-export default function RumorScanner() {
+export default function RumorScanner({ selectedCountry }) {
+    const { t, i18n } = useTranslation();
+    const countryName = selectedCountry?.name || "India";
     const [rumor, setRumor] = useState('');
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -26,7 +29,10 @@ export default function RumorScanner() {
             const res = await fetch('http://localhost:3001/api/rumor-check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rumorText: rumor }),
+                body: JSON.stringify({ 
+                    rumorText: rumor,
+                    lang: i18n.language // AI Language Sync
+                }),
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
@@ -57,10 +63,10 @@ export default function RumorScanner() {
                 <div className="bg-brand-500/20 p-2 rounded-lg">
                     <ShieldCheck className="w-5 h-5 text-brand-400" />
                 </div>
-                <h3 className="font-bold text-white text-base">WhatsApp Rumor Scanner</h3>
+                <h3 className="font-bold text-white text-base">{t('rumor.title')}</h3>
             </div>
             <p className="text-slate-400 text-sm mb-4 ml-11">
-                Paste a forwarded message to verify it with the Election Authority
+                {t('rumor.subtitle')}
             </p>
 
             {/* Textarea */}
@@ -68,7 +74,7 @@ export default function RumorScanner() {
                 rows={3}
                 value={rumor}
                 onChange={(e) => setRumor(e.target.value)}
-                placeholder='e.g. "EVMs in Booth 45 are being moved in an auto-rickshaw late at night!"'
+                placeholder={t('rumor.input_placeholder')}
                 className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-slate-500 resize-none"
             />
 
@@ -92,7 +98,7 @@ export default function RumorScanner() {
                     disabled={loading || !rumor.trim()}
                     className="flex-1 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                 >
-                    {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Scanning...</> : 'Verify Message'}
+                    {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('rumor.analyzing')}</> : t('rumor.check_btn')}
                 </button>
                 <button
                     onClick={() => { setRumor(''); setResult(null); }}

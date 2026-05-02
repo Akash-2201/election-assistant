@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react';
-import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import VoterIDScanner from './components/VoterIDScanner';
 import Chatbot from './components/Chatbot';
 import RumorScanner from './components/RumorScanner';
 import GlobalMapTab from './components/GlobalMapTab';
-import NewsTab from './components/NewsTab';
-import { LayoutDashboard, Newspaper, ScanLine, ShieldCheck, Clock, Settings, Bell, MessageCircle, X } from 'lucide-react';
+import LiveNews from './components/LiveNews';
+import EligibilityTree from './components/EligibilityTree';
+import ElectionRoadmap from './components/ElectionRoadmap';
+import { LayoutDashboard, Newspaper, ScanLine, ShieldCheck, Clock, Settings, Bell, MessageCircle, X, ClipboardCheck, Milestone, Languages, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function AppContent() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('home');
   const [highContrast, setHighContrast] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const { t } = useLanguage();
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState({ id: 'IND', name: 'India', lat: 20.5937, lng: 78.9629, status: 'Ongoing', timeline: 'May 4, 2026 (Counting)', type: 'General Elections' });
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const currentLanguage = i18n.language || 'en';
 
   useEffect(() => {
     if (highContrast) {
@@ -29,10 +35,19 @@ function AppContent() {
   }, []);
 
   const TABS = [
-    { id: 'home', label: 'Global Pulse', icon: LayoutDashboard },
-    { id: 'news', label: 'Live News', icon: Newspaper },
-    { id: 'scan', label: 'ID Scanner', icon: ScanLine },
-    { id: 'rumor', label: 'Rumor Check', icon: ShieldCheck },
+    { id: 'home', label: t('sidebar.global_pulse'), icon: LayoutDashboard },
+    { id: 'news', label: t('sidebar.live_news'), icon: Newspaper },
+    { id: 'roadmap', label: t('sidebar.election_process'), icon: Milestone },
+    { id: 'eligibility', label: t('sidebar.eligibility_check'), icon: ClipboardCheck },
+    { id: 'scan', label: t('sidebar.id_scanner'), icon: ScanLine },
+    { id: 'rumor', label: t('sidebar.rumor_check'), icon: ShieldCheck },
+  ];
+
+  const LANGUAGES = [
+    { code: 'en', name: 'English' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'pt', name: 'Portuguese' }
   ];
 
   return (
@@ -78,7 +93,7 @@ function AppContent() {
             className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-400 hover:bg-white/5 transition-all"
           >
             <Settings className="w-6 h-6" />
-            <span className="hidden md:block">Accessibility</span>
+            <span className="hidden md:block">{t('sidebar.accessibility')}</span>
           </button>
           <div className="px-4 py-4 hidden md:block text-[10px] text-slate-500 uppercase tracking-widest font-bold">
             © 2026 VoterQuest Global
@@ -91,7 +106,7 @@ function AppContent() {
         {/* Top Header */}
         <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-slate-950/50 backdrop-blur-md z-20">
           <div className="flex items-center gap-6">
-            <h2 className="text-xl font-bold capitalize">{TABS.find(t => t.id === activeTab)?.label || 'Dashboard'}</h2>
+            <h2 className="text-xl font-bold capitalize">{TABS.find(t => t.id === activeTab)?.label || t('header.dashboard')}</h2>
             <div className="hidden lg:flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-xl border border-white/5">
               <Clock className="w-4 h-4 text-brand-500" />
               <span className="text-sm font-mono text-slate-300 font-bold">{currentTime.toLocaleTimeString()}</span>
@@ -99,6 +114,47 @@ function AppContent() {
           </div>
 
           <div className="flex items-center gap-4">
+             {/* Language Switcher */}
+             <div className="relative">
+                <button 
+                  onClick={() => setIsLangOpen(!isLangOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-cyan-500/50 transition-all text-slate-300 group shadow-[0_0_15_rgba(6,182,212,0.05)] hover:shadow-[0_0_15_rgba(6,182,212,0.2)]"
+                >
+                  <Languages className="w-5 h-5 text-cyan-400" />
+                  <span className="hidden lg:block font-bold text-sm uppercase tracking-wider">{currentLanguage.slice(0, 2)}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isLangOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      className="absolute top-full mt-2 right-0 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-2xl"
+                    >
+                      {LANGUAGES.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            i18n.changeLanguage(lang.code);
+                            setIsLangOpen(false);
+                          }}
+                          className={`w-full text-left px-5 py-4 text-sm font-black transition-all flex items-center justify-between ${
+                            currentLanguage.startsWith(lang.code)
+                            ? 'bg-cyan-500/10 text-cyan-400 border-l-4 border-cyan-500' 
+                            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                          }`}
+                        >
+                          {lang.name}
+                          {currentLanguage.startsWith(lang.code) && <CheckCircle2 className="w-4 h-4" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+             </div>
+
              <button 
                onClick={() => setIsChatOpen(!isChatOpen)}
                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold border ${
@@ -108,7 +164,7 @@ function AppContent() {
                }`}
              >
                <MessageCircle className="w-5 h-5" />
-               <span className="hidden sm:block">AI Assistant</span>
+               <span className="hidden sm:block">{t('header.ai_assistant')}</span>
              </button>
 
              <button className="p-2.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 hover:text-white transition-all relative">
@@ -126,7 +182,7 @@ function AppContent() {
              <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/20 blur-[150px]" />
            </div>
 
-           <div className="relative h-full z-10 overflow-y-auto custom-scrollbar pr-2">
+           <div className="relative h-full z-10 pr-2">
              <AnimatePresence mode="wait">
                <motion.div
                  key={activeTab}
@@ -134,22 +190,29 @@ function AppContent() {
                  animate={{ opacity: 1, y: 0 }}
                  exit={{ opacity: 0, y: -15 }}
                  transition={{ duration: 0.3, ease: "easeOut" }}
-                 className="h-full"
+                 className="h-full w-full"
                >
-                 {activeTab === 'home' && <GlobalMapTab />}
-                 {activeTab === 'news' && <NewsTab />}
+                  {activeTab === 'home' && <GlobalMapTab selectedCountry={selectedCountry} setSelectedCountry={setSelectedCountry} />}
+                  {activeTab === 'news' && <LiveNews selectedCountry={selectedCountry} />}
+                  {activeTab === 'roadmap' && <ElectionRoadmap />}
                  
-                 {activeTab === 'scan' && (
-                   <div className="h-full max-w-4xl mx-auto py-8">
-                     <VoterIDScanner />
-                   </div>
-                 )}
+                  {activeTab === 'eligibility' && (
+                    <div className="h-full max-w-4xl mx-auto py-8">
+                      <EligibilityTree selectedCountry={selectedCountry} />
+                    </div>
+                  )}
 
-                 {activeTab === 'rumor' && (
-                   <div className="h-full max-w-2xl mx-auto py-8">
-                     <RumorScanner />
-                   </div>
-                 )}
+                  {activeTab === 'scan' && (
+                    <div className="h-full max-w-4xl mx-auto py-8">
+                      <VoterIDScanner selectedCountry={selectedCountry} />
+                    </div>
+                  )}
+
+                  {activeTab === 'rumor' && (
+                    <div className="h-full max-w-2xl mx-auto py-8">
+                      <RumorScanner selectedCountry={selectedCountry} />
+                    </div>
+                  )}
                </motion.div>
              </AnimatePresence>
            </div>
@@ -181,7 +244,7 @@ function AppContent() {
                       <MessageCircle className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white">Election AI Expert</h3>
+                      <h3 className="font-bold text-white">{t('header.ai_assistant')}</h3>
                       <span className="text-[10px] text-brand-400 font-bold uppercase tracking-widest">Global Support</span>
                     </div>
                   </div>
@@ -206,8 +269,6 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AppContent />
-    </LanguageProvider>
+    <AppContent />
   );
 }

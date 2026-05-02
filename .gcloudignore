@@ -1,0 +1,23 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment and Secrets
+.env
+*.json
+!package.json
+!package-lock.json
+
+# Local Build Artifacts
+dist/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+
+# Explicitly ignore the service account key
+election-assistant-494805-53d473202643.json

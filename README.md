@@ -1,6 +1,6 @@
 # 🗳️ VoterQuest 2026: The AI Election Command Center
 
-VoterQuest is a production-grade, AI-powered election intelligence dashboard designed for the May 2026 global election cycle. It combines high-fidelity geospatial data, real-time news aggregation, and **Gemini 2.5 Pro** multi-language intelligence to provide voters with a "Cyber-Fintech" grade command center.
+VoterQuest is a production-grade, AI-powered election intelligence dashboard designed global election cycle. It combines high-fidelity geospatial data, real-time news aggregation, and **Gemini 2.5 Pro** multi-language intelligence to provide voters with a "Cyber-Fintech" grade command center.
 
 ---
 
